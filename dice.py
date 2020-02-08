@@ -1,11 +1,21 @@
 import random # because life is random no mather what...
 from pynput import keyboard
-
+import os
 
 marker = [False,False,False,False,False] # these are selected dice
+nums = []
 
-def rollTheDice():
-	print(marker)
+def rollTheDice(numbers):
+	global nums
+	if not numbers:
+		nums = [random.randint(1,6) for i in range(5)]
+	else:
+		nums = [numbers[i] if marker[i] else random.randint(1,6) for i in range(5)]
+	numstr = ' '.join(str(number) for number in nums)
+	os.system('clear')
+	table()	
+	print("\r\r"+numstr+"\x1b[K",flush=True)
+	print(markerLine(marker),end='',flush=True)
 
 # define on_release method from pyinput module to track keys 1 to 5 and ESC
 # update marker list and call function markerLine
@@ -27,8 +37,8 @@ def on_release(key):
 	if key == keyboard.KeyCode(char = '5'):
 		marker[4] = not(marker[4])
 		print(markerLine(marker),end='',flush=True)
-	if key == keyboard.Key.enter:
-		rollTheDice()
+	if key == keyboard.KeyCode(char = '0'):
+		rollTheDice(nums)
 	if key == keyboard.Key.esc:
 		return False
 
@@ -44,7 +54,7 @@ def markerLine(arr):
 	return "\r"+string+"\x1b[K"
 
 humans = int(input('Specify number of human players [1]: ') or 1) # default is one (you)
-print(humans)
+#print(humans)
 if humans > 1:
 	temp_robots = 0
 else:
@@ -125,10 +135,7 @@ def table():
 	print('| TOTAL|'+np*'     |     |     |',sep2)
 	print('| SCORE|'+np*'                 |',sep3)
 
-table()
-
-numbers = [random.randint(1,6) for i in range(dice)]
-print(' '.join(str(number) for number in numbers))
+rollTheDice(nums)
 
 while True:
 	with keyboard.Listener(on_release=on_release) as listener:
