@@ -3,21 +3,35 @@ from pynput import keyboard
 import os
 
 marker = [False,False,False,False,False] # these are selected dice
-nums = []
+nums = [random.randint(1,6) for i in range(5)]
 
 def rollTheDice(numbers):
+	global marker
 	global nums
-	if not numbers:
-		nums = [random.randint(1,6) for i in range(5)]
-	else:
-		nums = [numbers[i] if marker[i] else random.randint(1,6) for i in range(5)]
+	nums = [numbers[i] if marker[i] else random.randint(1,6) for i in range(5)]
 	numstr = ' '.join(str(number) for number in nums)
 	os.system('clear')
 	table()	
-	print("\r\r"+numstr+"\x1b[K",flush=True)
+	print(numstr,'Current player:',current_player.name.upper(),'Roll :',current_player.roll)
+	
 	print(markerLine(marker),end='',flush=True)
+	current_player.roll += 1
+	if current_player.roll > 3:
+		writeResult()
+		current_player.game += 1
+		current_player.roll = 1
+		marker = [False,False,False,False,False]
 
-# define on_release method from pyinput module to track keys 1 to 5 and ESC
+def writeResult():
+	if   current_player.game == 1: current_player.ones[current_player.round]   = 1*(nums.count(1) - 3) 
+	elif current_player.game == 2: current_player.twos[current_player.round]   = 2*(nums.count(2) - 3) 
+	elif current_player.game == 3: current_player.threes[current_player.round] = 3*(nums.count(3) - 3) 
+	elif current_player.game == 4: current_player.fours[current_player.round]  = 4*(nums.count(4) - 3) 
+	elif current_player.game == 5: current_player.fives[current_player.round]  = 5*(nums.count(5) - 3) 
+	elif current_player.game == 6: current_player.sixes[current_player.round]  = 6*(nums.count(6) - 3) 
+	print(current_player.ones,current_player.twos,current_player.threes,current_player.fours,current_player.fives,current_player.sixes)
+
+# define on_release method from pyinput module to track keys 0 to 5 and ESC
 # update marker list and call function markerLine
 def on_release(key):
 #	print('{0} released'.format(key))
@@ -54,13 +68,8 @@ def markerLine(arr):
 	return "\r"+string+"\x1b[K"
 
 humans = int(input('Specify number of human players [1]: ') or 1) # default is one (you)
-#print(humans)
-if humans > 1:
-	temp_robots = 0
-else:
-	temp_robots = 1 
+temp_robots = 0 if humans > 1 else 1
 robots = int(input('Specify number of robot players [' + str(temp_robots)  + ']: ') or temp_robots) # default is one (unless you set more humans - then its zero)
-print(robots)
 names = input('Set player names (separated by space): ').split() # good to know who is who
 print(names)
 
@@ -70,24 +79,20 @@ for name in names:
 
 np = len(names)
 dice = 5
-#print(type(dice))
-def pluralize(num):
-	if num == 1:
-		return 'die'
-	else:
-		return 'dice'
-
-#print(dice,pluralize(dice),'rollin...')
 
 
 class Player:
-	def __init__(self):
+	def __init__(self,name):
+		self.name = name
+		self.round = 0
+		self.game = 1
+		self.roll = 1
 		self.ones = ['-','-','-']
-		self.twos = -6
-		self.threes = -9
-		self.fours = -12
-		self.fives = -15
-		self.sixes = -18
+		self.twos = ['-','-','-']
+		self.threes = ['-','-','-']
+		self.fours = ['-','-','-']
+		self.fives = ['-','-','-']
+		self.sixes = ['-','-','-']
 		self.total1 = -50
 		self.double = 0
 		self.triple = 0
@@ -102,8 +107,9 @@ class Player:
 		self.score = 0
 
 
-players = [Player() for name in names]
-#print(players[0].ones)
+players = [Player(name) for name in names]
+current_player = players[0]
+print(players[0],current_player)
 
 def table():
 
@@ -117,11 +123,11 @@ def table():
 	print(headrow,sep3)
 	print('| GAME |'+np*'((1))|((2))|((3))|',sep2)
 	print('|  1s  |',''.join(list(map(lambda x:(str(x.ones[0])).center(5) + '|' + (str(x.ones[1])).center(5) + '|' + (str(x.ones[2])).center(5) + '|',players)))[1:],sep1)
-	print('|  2s  |'+np*'     |     |     |',sep1)
-	print('|  3s  |'+np*'     |     |     |',sep1)
-	print('|  4s  |'+np*'     |     |     |',sep1)
-	print('|  5s  |'+np*'     |     |     |',sep1)
-	print('|  6s  |'+np*'     |     |     |',sep2)
+	print('|  2s  |',''.join(list(map(lambda x:(str(x.twos[0])).center(5) + '|' + (str(x.twos[1])).center(5) + '|' + (str(x.twos[2])).center(5) + '|',players)))[1:],sep1)
+	print('|  3s  |',''.join(list(map(lambda x:(str(x.threes[0])).center(5) + '|' + (str(x.threes[1])).center(5) + '|' + (str(x.threes[2])).center(5) + '|',players)))[1:],sep1)
+	print('|  4s  |',''.join(list(map(lambda x:(str(x.fours[0])).center(5) + '|' + (str(x.fours[1])).center(5) + '|' + (str(x.fours[2])).center(5) + '|',players)))[1:],sep1)
+	print('|  5s  |',''.join(list(map(lambda x:(str(x.fives[0])).center(5) + '|' + (str(x.fives[1])).center(5) + '|' + (str(x.fives[2])).center(5) + '|',players)))[1:],sep1)
+	print('|  6s  |',''.join(list(map(lambda x:(str(x.sixes[0])).center(5) + '|' + (str(x.sixes[1])).center(5) + '|' + (str(x.sixes[2])).center(5) + '|',players)))[1:],sep1)
 	print('| -50  |'+np*'     |     |     |',sep2)
 	print('|  2k  |'+np*'     |     |     |',sep1)
 	print('|  3k  |'+np*'     |     |     |',sep1)
