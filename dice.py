@@ -2,6 +2,16 @@ import random # because life is random no mather what...
 from pynput import keyboard
 import os, time
 import sys, termios
+import player
+
+humans = int(input('Specify number of human players [1]: ') or 1) # default is one (you)
+temp_robots = 0 if humans > 1 else 1
+robots = int(input('Specify number of robot players [' + str(temp_robots)  + ']: ') or temp_robots) # default is one (unless you set more humans - then its zero)
+names = input('Set player names (separated by space): ').split() # good to know who is who
+
+players = [player.Player(name) for name in names]
+cp = players[0]
+cp_index = 0
 
 marker = [False,False,False,False,False] # these are selected dice
 nums = [random.randint(1,6) for i in range(5)] #random set of 5 dice
@@ -15,7 +25,6 @@ def rollTheDice(numbers):
 	print('Current player:',cp.name.upper(),'Round:',cp.round+1,'Game:',cp.game,'Roll:',cp.roll)
 	table()	
 	print(numstr)
-	
 	print(markerLine(marker),end='',flush=True)
 	if cp.round == 1 and cp.roll == 1:
 		check_game_select()
@@ -24,7 +33,6 @@ def rollTheDice(numbers):
 		if cp.round == 2:
 			check_game_select()
 		writeResult()
-		if cp.round == 0: cp.game += 1
 		cp.roll = 1
 		marker = [False,False,False,False,False]
 		print('Saving result to table')
@@ -36,9 +44,15 @@ def rollTheDice(numbers):
 
 def check_game_select():
 	termios.tcflush(sys.stdin, termios.TCIFLUSH)
-	cp.game = int(input('Select game from 1 to 15: '))
-	if cp.game < 1 or cp.game > 15:
-		print('Invalid game number!',end='',flush=True)
+	try:
+		cp.game = int(input('Select game from 1 to 15: '))
+		if cp.game not in range(1,16):
+	                print('\r'+'\x1b[1A'+'\x1b[2K'+'Invalid selection!',end='',flush=True)
+	                check_game_select()
+		else:
+			print('\r'+'\x1b[1A'+'\x1b[2K'+'Game '+str(cp.game)+' selected. Please choose your numbers!',end='',flush=True)
+	except ValueError:
+		print('\r'+'\x1b[1A'+'\x1b[2K'+'Numeric required!',end='',flush=True)
 		check_game_select()
 
 
@@ -59,9 +73,10 @@ def writeResult():
 	elif cp.game ==13: cp.quatro[cp.round]    = quatro();    cp.total2[cp.round] = cp.total2f(); cp.round = cp.change_round();
 	elif cp.game ==14: cp.general[cp.round]   = general();   cp.total2[cp.round] = cp.total2f(); cp.round = cp.change_round();
 	elif cp.game ==15: cp.chance[cp.round]    = sum(nums);   cp.total2[cp.round] = cp.total2f(); cp.round = cp.change_round();
+	cp.score = cp.scoreFunc();
+	if cp.round == 0: cp.game += 1
 	cp_index = 0 if cp_index == len(players) - 1 else cp_index + 1
 	cp = players[cp_index] 
-#	print(cp.ones,cp.twos,cp.threes,cp.fours,cp.fives,cp.sixes)
 
 def double():
 	result = [2*i for i in range(1,7) if nums.count(i) > 1]
@@ -132,93 +147,12 @@ def markerLine(arr):
 		#print(string)
 	return "\r"+string+"\x1b[K"
 
-humans = int(input('Specify number of human players [1]: ') or 1) # default is one (you)
-temp_robots = 0 if humans > 1 else 1
-robots = int(input('Specify number of robot players [' + str(temp_robots)  + ']: ') or temp_robots) # default is one (unless you set more humans - then its zero)
-names = input('Set player names (separated by space): ').split() # good to know who is who
-
 headrow = '|      |      |'
 for name in names:
 	headrow += name[:17].center(17) + '|'
 
 np = len(names)
 
-
-class Player:
-	def __init__(self,name):
-		self.name = name
-		self.round = 1
-		self.game = 1
-		self.roll = 1
-		self.ones = ['-','-','-']
-		self.twos = ['-','-','-']
-		self.threes = ['-','-','-']
-		self.fours = ['-','-','-']
-		self.fives = ['-','-','-']
-		self.sixes = ['-','-','-']
-		self.total1 = ['-','-','-']
-		self.double = ['-','-','-']
-		self.triple = ['-','-','-']
-		self.doubles = ['-','-','-']
-		self.full = ['-','-','-']
-		self.straight = ['-','-','-']
-		self.straight2 = ['-','-','-']
-		self.quatro = ['-','-','-']
-		self.general = ['-','-','-']
-		self.chance = ['-','-','-']
-		self.total2 = ['-','-','-']
-		self.score = '-'
-
-	def total1f(self):
-		if  type(self.ones[self.round])   is int \
-		and type(self.twos[self.round])   is int \
-		and type(self.threes[self.round]) is int \
-		and type(self.fours[self.round])  is int \
-		and type(self.fives[self.round])  is int \
-		and type(self.sixes[self.round])  is int:
-			sum = self.ones[self.round] + self.twos[self.round] + self.threes[self.round] + self.fours[self.round] + self.fives[self.round] + self.sixes[self.round]
-			if sum < 0:
-				return sum - 50
-			else:
-				return sum
-		else:
-			return '-'
-		
-	def total2f(self):
-		if  type(self.total1[self.round])    is int \
-		and type(self.double[self.round])    is int \
-		and type(self.triple[self.round])    is int \
-		and type(self.doubles[self.round])   is int \
-		and type(self.full[self.round])      is int \
-		and type(self.straight[self.round])  is int \
-		and type(self.straight2[self.round]) is int \
-		and type(self.quatro[self.round])    is int \
-		and type(self.general[self.round])   is int \
-		and type(self.chance[self.round])    is int:
-			total = self.total1[self.round]    + \
-                                self.double[self.round]    + \
-                                self.triple[self.round]    + \
-                                self.doubles[self.round]   + \
-                                self.full[self.round]      + \
-                                self.straight[self.round]  + \
-                                self.straight2[self.round] + \
-                                self.quatro[self.round]    + \
-                                self.general[self.round]   + \
-                                self.chance[self.round]
-			return total
-		else:
-			return '-'
-
-	def change_round(self):
-		if type(self.total2[self.round]) is int:
-			return self.round + 1  
-		else:
-			return self.round
-
-players = [Player(name) for name in names]
-cp = players[0]
-cp_index = 0
-#print(players[0],cp)
 
 def table():
 
@@ -248,7 +182,7 @@ def table():
 	print('|  14  |  5k  |',''.join(list(map(lambda x:(str(x.general[0])).center(5) + '|' + (str(x.general[1])).center(5) + '|' + (str(x.general[2])).center(5) + '|',players)))[1:],sep1)
 	print('|  15  |CHANCE|',''.join(list(map(lambda x:(str(x.chance[0])).center(5) + '|' + (str(x.chance[1])).center(5) + '|' + (str(x.chance[2])).center(5) + '|',players)))[1:],sep2)
 	print('|      | TOTAL|',''.join(list(map(lambda x:(str(x.total2[0])).center(5) + '|' + (str(x.total2[1])).center(5) + '|' + (str(x.total2[2])).center(5) + '|',players)))[1:],sep2)
-	print('|      | SCORE|'+np*(17*' '+'|'),sep3)
+	print('|      | SCORE|',''.join(list(map(lambda x:(str(x.score)).center(17) + '|',players)))[1:],sep3)
 
 rollTheDice(nums)
 
